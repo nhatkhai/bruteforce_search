@@ -61,6 +61,3 @@ if __name__ == "__main__":
   FORMAT= '%(asctime)s [%(filename)15s:%(lineno)-4d] %(levelname)7s - %(message)s'
   logging.basicConfig(format=FORMAT, level=logging.WARN)
   main()
-] %(levelname)7s - %(message)s'
-  logging.basicConfig(format=FORMAT, level=logging.WARN)
-  main()

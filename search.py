@@ -14,6 +14,7 @@ import subprocess
 from pw_spec import iterfromrule
 
 log=logging.getLogger(__name__)
+log.setLevel(logging.INFO)
 stop_signal=False
 
 def start_brute(rulefile, cfg):
@@ -31,26 +32,30 @@ def start_brute(rulefile, cfg):
     do_initialize(cfg)
 
     log.info("starting brute-force...")
-    for candidate in combinations:
-      log.log(0, "Try %s", candidate)
+    try:
+      for candidate in combinations:
+        log.log(0, "Try %s", candidate)
 
-      if do_checkpass(candidate, cfg):
-        log.info("Password found: %s", candidate)
-        return
+        if do_checkpass(candidate, cfg):
+          log.info("Password found: %s", candidate)
+          return
 
-      # Check if we reach maximum number of try
-      if cfg.ntry is not None:
-        cfg.ntry -= 1
-        if not cfg.ntry: 
-          break
+        # Check if we reach maximum number of try
+        if cfg.ntry is not None:
+          cfg.ntry -= 1
+          if not cfg.ntry: 
+            raise RuntimeError("Reach try limit")
 
-      # User hit Ctrl+C
-      if stop_signal:
-        break
+        # User hit Ctrl+C
+        if stop_signal:
+          raise RuntimeError("User canceled")
+
+    except RuntimeError as e:
+      log.error("%s", e);
+      log.info("Save current search states into %s...", save_state_file)
+      combinations.save_state(save_state_file)
   
     log.error("Password not found.")
-    log.info("Save current search states into %s...", save_state_file)
-    combinations.save_state(save_state_file)
 
 
 def signal_handler(sig, frame):
@@ -68,7 +73,7 @@ def do_initialize(cfg):
     log.debug(cmd_args)
     ret = subprocess.call(cmd_args)
     if ret != 0:
-      raise Exception("{0} return error code of {1}".format(cmd_args, ret))
+      raise RuntimeError("{0} return error code of {1}".format(cmd_args, ret))
 
 
 def do_checkpass(password, cfg):
@@ -76,7 +81,7 @@ def do_checkpass(password, cfg):
     log.debug(cmd_args)
     ret = subprocess.call(cmd_args)
     if ret > 1:
-      raise Exception("{0} return error code of {1}".format(cmd_args, ret))
+      raise RuntimeError("{0} return error code of {1}".format(cmd_args, ret))
 
     return ret==0
 
@@ -112,10 +117,7 @@ def main():
     signal.signal(signal.SIGINT, signal_handler)
 
     a = datetime.datetime.now()
-    try:
-      start_brute(args.rule, args)
-    except Exception as e:
-      log.error("Unexpected error: %s", e)
+    start_brute(args.rule, args)
     b = datetime.datetime.now()
     log.info("Operations took {0} seconds.".format(b-a))
 

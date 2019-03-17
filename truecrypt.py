@@ -1,5 +1,10 @@
 #!/bin/python
 #!/usr/bin/env python3
+#
+# exitcode  = 0 - For password OK, initial OK
+# exitcode  = 1 - For password not OK, or initial not OK
+# exitcode >= 2 - For fatal error, or initial not OK
+#
 import os
 import sys
 import argparse
@@ -19,7 +24,7 @@ def do_initialize(cfg):
       log.error("Unable to execute truecrypt with error code of %s", ret)
       sys.exit(1)
 
-    if os.path.exists(cfg.letter + ":\\"):
+    if os.path.isdir(cfg.letter + ":\\"):
       log.error("Unable to unmount drive %s", cfg.letter)
       sys.exit(1)
 
@@ -36,7 +41,7 @@ def do_checkpass(cfg):
       log.warn("truecrypt return %s", ret)
       sys.exit(1)
 
-    if not os.path.exists(cfg.letter + ":\\"):
+    if not os.path.isdir(cfg.letter + ":\\"):
       sys.exit(1)
 
 def main(): 
@@ -49,8 +54,14 @@ def main():
   parser.add_argument("-v", '--volume'
       , help="path to a TrueCrypt volume, such as \Device\Harddisk1\Partition1"
       , required=True )
+  parser.add_argument("-c", '--checkdrive'
+      , help="check driver letter that should always exist")
 
   args = parser.parse_args()
+
+  if not os.path.isdir(args.checkdrive + ":\\"):
+    log.error("Cannot found drive %s", args.checkdrive)
+    sys.exit(2)
 
   if args.password is None:
     return do_initialize(args)

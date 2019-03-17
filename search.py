@@ -75,7 +75,7 @@ def do_checkpass(password, cfg):
     cmd_args = cfg.cmd_args + [password]
     log.debug(cmd_args)
     ret = subprocess.call(cmd_args)
-    if ret > 0:
+    if ret > 1:
       raise Exception("{0} return error code of {1}".format(cmd_args, ret))
 
     return ret==0

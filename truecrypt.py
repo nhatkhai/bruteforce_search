@@ -33,11 +33,11 @@ def do_checkpass(cfg):
       ])
 
     if ret !=0:
-      log.error("Unable to execute truecrypt with error code of %s", ret)
-      sys.exit(ret)
+      log.warn("truecrypt return %s", ret)
+      sys.exit(1)
 
     if not os.path.exists(cfg.letter + ":\\"):
-      sys.exit(-1)
+      sys.exit(1)
 
 def main(): 
   parser = argparse.ArgumentParser(description=__doc__)
@@ -59,5 +59,8 @@ def main():
 
 if __name__ == "__main__":
   FORMAT= '%(asctime)s [%(filename)15s:%(lineno)-4d] %(levelname)7s - %(message)s'
-  logging.basicConfig(format=FORMAT, level=logging.ERROR+1)
+  logging.basicConfig(format=FORMAT, level=logging.WARN)
+  main()
+] %(levelname)7s - %(message)s'
+  logging.basicConfig(format=FORMAT, level=logging.WARN)
   main()

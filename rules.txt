@@ -1,0 +1,21 @@
+#!search.py -rrules.txt -- -l x -v \device0\harddisk1\partition0
+# 
+# * Each line specify a set of possible values fro each character in the
+#   password (line rule)
+# * Any lines after the first empty line rule will be ignored
+#
+# Special control character can be escaped using '\'.
+# Following are special control character:
+#  $ - The password character can be empty/ommited
+#  # - Use for inline commenting
+#
+# Following is example of the password search rule
+#
+a
+b
+c$
+POIUYTREWQLKJHGFDSAMNBVCVXZ0987654321
+POIUYTREWQLKJHGFDSAMNBVCVXZ0987654321
+d
+abcde$
+ef$

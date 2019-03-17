@@ -10,6 +10,7 @@ import signal
 import logging
 import datetime
 import argparse
+import subprocess
 from pw_spec import iterfromrule
 
 log=logging.getLogger(__name__)
@@ -34,15 +35,22 @@ def start_brute(rulefile, cfg):
       log.log(0, "Try %s", candidate)
 
       if do_checkpass(candidate, cfg):
-        log.info("Password found: ", candidate)
+        log.info("Password found: %s", candidate)
         return
 
+      # Check if we reach maximum number of try
+      if cfg.ntry is not None:
+        cfg.ntry -= 1
+        if not cfg.ntry: 
+          break
+
+      # User hit Ctrl+C
       if stop_signal:
-        log.info("Save current search states into %s...", save_state_file)
-        combinations.save_state(save_state_file)
         break
   
     log.error("Password not found.")
+    log.info("Save current search states into %s...", save_state_file)
+    combinations.save_state(save_state_file)
 
 
 def signal_handler(sig, frame):
@@ -56,46 +64,63 @@ def signal_handler(sig, frame):
 
 
 def do_initialize(cfg):
-    """ Unmount TrueCrypt drive """
-    log.info("Unmouting drive...")
-    cmd = "truecrypt /l{:s} /d /s /q".format(cfg.drive)
-    ret = os.system(cmd)
+    cmd_args = cfg.cmd_args
+    log.debug(cmd_args)
+    ret = subprocess.call(cmd_args)
+    if ret != 0:
+      raise Exception("{0} return error code of {1}".format(cmd_args, ret))
 
 
 def do_checkpass(password, cfg):
-    """ Check password """
-    cmd = "truecrypt /v {:s} /l{:s} /a /p {:s} /e /b /s /q".format(
-        cfg.volume, cfg.drive, password)
-    os.system(cmd)
-    ret = os.path.exists(cfg.drive + ":\\")
-    return ret
+    cmd_args = cfg.cmd_args + [password]
+    log.debug(cmd_args)
+    ret = subprocess.call(cmd_args)
+    if ret > 0:
+      raise Exception("{0} return error code of {1}".format(cmd_args, ret))
+
+    return ret==0
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
 
-    parser.add_argument("-v", '--volume'
-        , help="path to a TrueCrypt volume"
-        , required=True )
-    parser.add_argument("-l", '--drive'
-        , help="driver letter to mount the volume as"
-       , required=True )
-    parser.add_argument("-r", "--rule"
-        , help="Specify which rule file will be use"
+    parser.add_argument("-r", '--rule'
+        , help="specify which rule file will be use"
         , default="rules.txt")
+    parser.add_argument("-c", '--cmd'
+        , help="""specify what script will be executed with the candidate
+               password. The first call will pass the candidate password.
+               It intend for initialization call."""
+        , default="truecrypt.py")
+    parser.add_argument('cmd_args'
+        , help="""arguments pass to CMD script. Using -- before pass all 
+               arguments will work better"""
+        , metavar='...'
+        , nargs=argparse.REMAINDER)
+    parser.add_argument('-n', '--ntry'
+        , help="Specify maximum number of password will be checked on"
+        , type=int)
+
 
     args = parser.parse_args()
+
+    # Adjust cmd_args
+    if '--' in args.cmd_args[0:1]: 
+      del args.cmd_args[0]
+    args.cmd_args.insert(0, args.cmd)
 
     signal.signal(signal.SIGINT, signal_handler)
 
     a = datetime.datetime.now()
-    start_brute(args.rule, args)
+    try:
+      start_brute(args.rule, args)
+    except Exception as e:
+      log.error("Unexpected error: %s", e)
     b = datetime.datetime.now()
     log.info("Operations took {0} seconds.".format(b-a))
 
 
 if __name__ == "__main__":
-  FORMAT= '%(asctime)s [%(filename)s:%(lineno)-4d] %(levelname)7s - %(message)s'
+  FORMAT= '%(asctime)s [%(filename)15s:%(lineno)-4d] %(levelname)7s - %(message)s'
   logging.basicConfig(format=FORMAT, level=logging.DEBUG)
-
   main()

@@ -69,7 +69,7 @@ class iterfromrule:
         stateChg = 1
 
       curState[ruleIdx] = stateVal
-    log.debug(0, "curState=%s",curState)
+    log.debug("curState=%s",curState)
     return True
 
   def save_state(self, filename):
@@ -95,9 +95,13 @@ class iterfromrule:
         lineCnt += 1
         rule = cls._parseRuleLine(line)
 
-        #Stop at the empty line where password rule should be ended
         if not rule:
-          break
+          if rules:
+          #Stop at the empty line where password rule should be ended
+            break
+          else:
+          #Not password rule had been started, so keep going
+            continue
 
         rules.append(rule)
         log.debug("  [%s:%d] - %s", rulefilename, lineCnt, rule)
